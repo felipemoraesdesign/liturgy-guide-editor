@@ -39,9 +39,11 @@
   const verseNumInput = document.getElementById('verse-number-input');
   const verseNumClear = document.getElementById('verse-number-clear');
   let currentVerseLi = null;
-  // Toggle de tema
-  const btnTheme  = document.getElementById('btn-theme');
-  const themeIcon = document.getElementById('theme-icon');
+  // TEMA — descomenta pra reativar (1/3)
+  // const btnTheme  = document.getElementById('btn-theme');
+  // const themeIcon = document.getElementById('theme-icon');
+  const btnTheme  = null;
+  const themeIcon = null;
   const THEME_KEY = 'boletim-editor-theme';
 
   // Configuração do espaçamento de .lyric-block (em mm)
@@ -549,8 +551,8 @@
   function setTheme(theme) {
     document.body.classList.remove('dark', 'light');
     document.body.classList.add(theme);
-    themeIcon.textContent = (theme === 'dark') ? 'light_mode' : 'dark_mode';
-    btnTheme.title = (theme === 'dark') ? 'Mudar para tema claro' : 'Mudar para tema escuro';
+    if (themeIcon) themeIcon.textContent = (theme === 'dark') ? 'light_mode' : 'dark_mode';
+    if (btnTheme)  btnTheme.title = (theme === 'dark') ? 'Mudar para tema claro' : 'Mudar para tema escuro';
     try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
   }
   function toggleTheme() {
@@ -568,13 +570,15 @@
 
   // ---------- inicialização ----------
   async function init() {
-    initTheme();
+    // TEMA — descomenta pra reativar (2/3)
+    // initTheme();
 
     btnEdit.addEventListener('click', toggleEdit);
     btnPrint.addEventListener('click', doPrint);
     btnSave.addEventListener('click', saveToOriginal);
     btnUpload.addEventListener('click', () => fileInput.click());
-    btnTheme.addEventListener('click', toggleTheme);
+    // TEMA — descomenta pra reativar (3/3)
+    // btnTheme.addEventListener('click', toggleTheme);
     fileInput.addEventListener('change', (e) => {
       const file = e.target.files && e.target.files[0];
       uploadHtml(file);
