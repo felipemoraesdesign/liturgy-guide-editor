@@ -76,6 +76,28 @@
     <button type="button" class="fmt" data-cmd="underline" title="Sublinhado (Cmd/Ctrl+U)">
       <span class="mi only">format_underlined</span>
     </button>
+    <button type="button" class="fmt" data-cmd="superscript" title="Sobrescrito (referência de rodapé)">
+      <span class="mi only">superscript</span>
+    </button>
+    <div class="popup-dropdown" id="align-dropdown">
+      <button type="button" class="fmt align-toggle" id="align-toggle" title="Alinhamento do parágrafo">
+        <span class="mi only">format_align_left</span>
+      </button>
+      <div class="popup-dropdown-menu" role="menu">
+        <button type="button" class="fmt" data-cmd="justifyLeft" title="Alinhar à esquerda">
+          <span class="mi only">format_align_left</span>
+        </button>
+        <button type="button" class="fmt" data-cmd="justifyCenter" title="Centralizar">
+          <span class="mi only">format_align_center</span>
+        </button>
+        <button type="button" class="fmt" data-cmd="justifyRight" title="Alinhar à direita">
+          <span class="mi only">format_align_right</span>
+        </button>
+        <button type="button" class="fmt" data-cmd="justifyFull" title="Justificar">
+          <span class="mi only">format_align_justify</span>
+        </button>
+      </div>
+    </div>
     <span class="popup-divider"></span>
     <button type="button" class="fmt" data-cmd="insertOrderedList" title="Lista numerada">
       <span class="mi only">format_list_numbered</span>

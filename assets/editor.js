@@ -498,6 +498,8 @@
 
   // ---------- formatação inline (negrito, itálico, listas) ----------
   function setupFormatButtons() {
+    const alignDropdown = document.getElementById('align-dropdown');
+
     document.querySelectorAll('.toolbar .fmt, .format-popup .fmt').forEach((btn) => {
       btn.addEventListener('mousedown', (e) => {
         e.preventDefault(); // preserva a seleção
@@ -507,12 +509,29 @@
           toggleRefrain();
           return;
         }
+        // Toggle do dropdown de alinhamento — só abre/fecha, não executa comando
+        if (btn.id === 'align-toggle') {
+          e.stopPropagation();
+          alignDropdown.classList.toggle('open');
+          return;
+        }
         const cmd = btn.dataset.cmd;
         if (cmd) {
           document.execCommand(cmd, false, null);
           scheduleSave();
+          // Se o botão estava dentro do dropdown de alinhamento, fecha depois de aplicar
+          if (alignDropdown && alignDropdown.contains(btn)) {
+            alignDropdown.classList.remove('open');
+          }
         }
       });
+    });
+
+    // Fecha o dropdown de alinhamento quando clica fora dele
+    document.addEventListener('click', (e) => {
+      if (alignDropdown && !alignDropdown.contains(e.target)) {
+        alignDropdown.classList.remove('open');
+      }
     });
   }
 
