@@ -75,11 +75,11 @@
   --f-sans:    "Inter", "Helvetica Neue", Arial, sans-serif;
   --f-body:    "Inter", "Helvetica Neue", Arial, sans-serif;
 
-  /* === TEMA — claro por padrão === */
-  --body-bg: #d9d9d9;
+  /* === TEMA — canvas inspirado na paleta Apple === */
+  --body-bg: #f5f5f7;     /* Pale Apple Gray — fundo de showcase */
 }
 body.dark {
-  --body-bg: #1D1B1A;
+  --body-bg: #1d1d1f;     /* Near-Black Ink Apple */
 }
 
 /* === RESET (cirúrgico) === */
@@ -147,9 +147,11 @@ body {
 .sheet {
   width: var(--sheet-w);
   height: var(--sheet-h);
-  background: #fff;
-  box-shadow: 0 1px 6px rgba(0,0,0,.18);
-  border-radius: 6px; /* estético no preview — removido na impressão */
+  background: #ffffff;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.04),
+    0 6px 24px rgba(0, 0, 0, 0.08);
+  border-radius: 12px; /* tier "card/module" do design system */
   display: flex;
   position: relative;
   overflow: hidden;

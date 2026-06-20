@@ -94,6 +94,7 @@
     <button type="button" class="fmt" data-cmd="superscript" title="Sobrescrito (referência de rodapé)">
       <span class="mi only">superscript</span>
     </button>
+    <button type="button" class="fmt allcaps-btn" id="btn-allcaps" title="Texto em maiúsculas (all caps)">AA</button>
     <div class="popup-dropdown" id="align-dropdown">
       <button type="button" class="fmt align-toggle" id="align-toggle" title="Alinhamento do parágrafo">
         <span class="mi only">format_align_left</span>
@@ -124,10 +125,17 @@
   </div>
 
   <div class="popup-row spacing-control" id="lyric-spacing">
-    <span class="mi only spacing-icon" title="Espaçamento abaixo do parágrafo">format_line_spacing</span>
-    <button type="button" class="fmt" id="spacing-minus" title="Diminuir espaçamento">−</button>
+    <span class="mi only spacing-icon" title="Espaço abaixo do bloco (margin-bottom)">vertical_distribute</span>
+    <button type="button" class="fmt" id="spacing-minus" title="Diminuir espaço abaixo">−</button>
     <span class="spacing-value" id="spacing-value">—</span>
-    <button type="button" class="fmt" id="spacing-plus" title="Aumentar espaçamento">+</button>
+    <button type="button" class="fmt" id="spacing-plus" title="Aumentar espaço abaixo">+</button>
+  </div>
+
+  <div class="popup-row line-height-control" id="line-height-row">
+    <span class="mi only spacing-icon" title="Entrelinha (line-height — espaço entre linhas dentro do parágrafo)">format_line_spacing</span>
+    <button type="button" class="fmt" id="line-height-minus" title="Diminuir entrelinha">−</button>
+    <span class="spacing-value" id="line-height-value">—</span>
+    <button type="button" class="fmt" id="line-height-plus" title="Aumentar entrelinha">+</button>
   </div>
 
   <div class="popup-row verse-number-control" id="verse-number-row">

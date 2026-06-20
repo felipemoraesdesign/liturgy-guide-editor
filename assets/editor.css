@@ -3,47 +3,59 @@
    Independente de document.css.
    ============================================================ */
 
-/* Variáveis locais ao editor (chrome — toolbar, popup, dropdown, inputs).
-   Por padrão: tema claro. Sobreposto por body.dark abaixo. */
+/* ====================================================================
+   Variáveis do editor (chrome) — paleta inspirada no design system Apple.
+   O documento (boletim) mantém sua identidade própria (vinho/Collier);
+   só a interface do EDITOR segue o sistema neutro+blue da Apple.
+
+   Paleta Apple aplicada:
+     Apple Action Blue   #0071e3   ← --tb-accent
+     Near-Black Ink      #1d1d1f   ← --tb-text
+     Secondary Gray      #6e6e73   ← --tb-text-muted
+     Soft Border Gray    #d2d2d7   ← --tb-border / --tb-ghost-border
+     Pale Apple Gray     #f5f5f7   ← hover de dropdown
+     Pure White          #ffffff   ← --tb-input-bg / --tb-dropdown-bg
+   ==================================================================== */
 :root {
-  --tb-accent: #8c3238;
-  --tb-bg: rgba(255, 255, 255, 0.7);
-  --tb-text: #333;
-  --tb-text-muted: #555;
+  --tb-accent: #0071e3;
+  --tb-bg: rgba(255, 255, 255, 0.72);
+  --tb-text: #1d1d1f;
+  --tb-text-muted: #6e6e73;
   --tb-border: rgba(0, 0, 0, 0.10);
-  --tb-divider: rgba(0, 0, 0, 0.12);
-  --tb-hover: rgba(0, 0, 0, 0.06);
-  --tb-active: rgba(0, 0, 0, 0.10);
-  --tb-input-bg: #fff;
-  --tb-input-text: #333;
-  --tb-input-border: #ccc;
+  --tb-divider: rgba(0, 0, 0, 0.10);
+  --tb-hover: rgba(0, 0, 0, 0.05);
+  --tb-active: rgba(0, 0, 0, 0.08);
+  --tb-input-bg: #ffffff;
+  --tb-input-text: #1d1d1f;
+  --tb-input-border: #d2d2d7;
   --tb-popup-bg: rgba(255, 255, 255, 0.85);
-  --tb-dropdown-bg: #fff;
-  --tb-dropdown-hover: #f6f6f6;
-  --tb-secondary-bg: #fff;
-  --tb-ghost-text: #777;
-  --tb-ghost-border: #ccc;
+  --tb-dropdown-bg: #ffffff;
+  --tb-dropdown-hover: #f5f5f7;
+  --tb-secondary-bg: #ffffff;
+  --tb-ghost-text: #6e6e73;
+  --tb-ghost-border: #d2d2d7;
 }
 body.dark {
-  --tb-bg: rgba(28, 28, 28, 0.78);
-  --tb-text: #e8e8e8;
-  --tb-text-muted: #a8a8a8;
+  /* Dark theme alinhado às superfícies Apple Graphite */
+  --tb-bg: rgba(29, 29, 31, 0.78);
+  --tb-text: #f5f5f7;
+  --tb-text-muted: #8e8e93;
   --tb-border: rgba(255, 255, 255, 0.10);
-  --tb-divider: rgba(255, 255, 255, 0.14);
-  --tb-hover: rgba(255, 255, 255, 0.08);
-  --tb-active: rgba(255, 255, 255, 0.14);
-  --tb-input-bg: #2a2826;
-  --tb-input-text: #ececec;
-  --tb-input-border: #444;
-  --tb-popup-bg: rgba(30, 30, 30, 0.85);
-  --tb-dropdown-bg: #2a2826;
-  --tb-dropdown-hover: #3a3836;
+  --tb-divider: rgba(255, 255, 255, 0.12);
+  --tb-hover: rgba(255, 255, 255, 0.06);
+  --tb-active: rgba(255, 255, 255, 0.10);
+  --tb-input-bg: #1d1d1f;
+  --tb-input-text: #f5f5f7;
+  --tb-input-border: #424245;
+  --tb-popup-bg: rgba(40, 40, 42, 0.85);
+  --tb-dropdown-bg: #1d1d1f;
+  --tb-dropdown-hover: #2a2a2c;
   --tb-secondary-bg: transparent;
-  --tb-ghost-text: #aaa;
-  --tb-ghost-border: rgba(255, 255, 255, 0.22);
+  --tb-ghost-text: #8e8e93;
+  --tb-ghost-border: rgba(255, 255, 255, 0.18);
 }
 
-/* Toolbar flutuante no topo, centralizada, com efeito blur */
+/* Toolbar flutuante no topo, centralizada, com efeito blur (vibrancy) */
 .toolbar {
   position: fixed;
   top: 12px;
@@ -54,15 +66,16 @@ body.dark {
   flex-wrap: wrap;
   gap: 6px;
   background: var(--tb-bg);
-  backdrop-filter: blur(14px) saturate(180%);
-  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   padding: 8px 10px;
-  border-radius: 10px;
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.14);
+  border-radius: 12px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
   border: 1px solid var(--tb-border);
   color: var(--tb-text);
-  font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Helvetica Neue", Arial, sans-serif;
   font-size: 12px;
+  letter-spacing: -0.01em;
   align-items: center;
 }
 
@@ -80,22 +93,23 @@ body { padding-top: 64px; }
 
 .toolbar button {
   background: var(--tb-accent);
-  color: #fff;
+  color: #ffffff;
   border: 0;
-  padding: 7px 12px;
-  border-radius: 5px;
+  padding: 7px 13px;
+  border-radius: 8px;
   font-family: inherit;
   font-size: 12px;
   font-weight: 500;
+  letter-spacing: -0.01em;
   cursor: pointer;
-  transition: opacity .15s, transform .05s;
+  transition: opacity .15s ease, transform .08s ease, background-color .15s;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   white-space: nowrap;
 }
-.toolbar button:hover { opacity: .88; }
-.toolbar button:active { transform: translateY(1px); }
+.toolbar button:hover  { opacity: .92; }
+.toolbar button:active { transform: scale(0.97); }
 .toolbar button.secondary {
   background: var(--tb-secondary-bg);
   color: var(--tb-accent);
@@ -128,13 +142,14 @@ body { padding-top: 64px; }
   gap: 4px;
   background: var(--tb-popup-bg);
   color: var(--tb-text);
-  backdrop-filter: blur(14px) saturate(180%);
-  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   padding: 6px;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid var(--tb-border);
-  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.22);
-  font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: -0.01em;
   /* Pequena animação ao aparecer */
   opacity: 0;
   transform: translateY(4px);
@@ -181,15 +196,15 @@ body.edit-mode.has-selection.in-block .format-popup .popup-row.spacing-control {
   top: calc(100% + 6px);
   left: 0;
   background: var(--tb-popup-bg);
-  backdrop-filter: blur(14px) saturate(180%);
-  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid var(--tb-border);
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 4px;
   gap: 2px;
   z-index: 1101;
   flex-direction: row;
-  box-shadow: 0 6px 18px rgba(0,0,0,.18);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.10);
   animation: popup-dropdown-fade .12s ease;
 }
 .popup-dropdown.open .popup-dropdown-menu { display: inline-flex; }
@@ -207,17 +222,29 @@ body.edit-mode.has-selection.in-block .format-popup .popup-row.spacing-control {
   font-size: 13px;
   justify-content: center;
   gap: 0;
-  border-radius: 4px;
+  border-radius: 6px;
   font-family: inherit;
   font-weight: 500;
+  letter-spacing: -0.01em;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  transition: background-color .12s;
 }
 .format-popup button.fmt:hover { background: var(--tb-hover); }
 .format-popup button.fmt:active { background: var(--tb-active); }
 .format-popup button.fmt b { font-weight: 700; }
 .format-popup button.fmt i { font-style: italic; }
+.format-popup button.fmt.allcaps-btn {
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+/* Estado "ativo" do botão all-caps quando o bloco atual está em uppercase */
+.format-popup button.fmt.active {
+  background: var(--tb-accent);
+  color: #ffffff;
+}
 
 .format-popup .spacing-icon {
   color: var(--tb-text-muted);
@@ -255,6 +282,19 @@ body.edit-mode.has-selection.in-verse-li .format-popup .popup-row.verse-number-c
   gap: 4px;
 }
 body.edit-mode.has-selection.in-block .format-popup .popup-row.tracking-control {
+  display: flex;
+}
+
+/* Linha de entrelinha (line-height) — aparece junto com o widget de espaçamento */
+.format-popup .popup-row.line-height-control {
+  display: none;
+  padding-top: 4px;
+  border-top: 1px solid var(--tb-border);
+  margin-top: 2px;
+  align-items: center;
+  gap: 4px;
+}
+body.edit-mode.has-selection.in-block .format-popup .popup-row.line-height-control {
   display: flex;
 }
 .verse-number-input {
@@ -330,29 +370,31 @@ body.edit-mode.has-selection.in-block .format-popup .popup-row.tracking-control 
   left: auto;
   background: var(--tb-dropdown-bg);
   border: 1px solid var(--tb-border);
-  border-radius: 7px;
-  box-shadow: 0 6px 18px rgba(0,0,0,.18);
-  min-width: 160px;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  min-width: 168px;
   overflow: hidden;
   z-index: 1001;
-  padding: 4px 0;
+  padding: 4px;
 }
 .dropdown.open .dropdown-menu { display: block; }
 .dropdown-menu button {
   display: flex;
   width: 100%;
   text-align: left;
-  background: var(--tb-dropdown-bg);
+  background: transparent;
   color: var(--tb-text);
   border: 0;
-  border-radius: 0;
-  padding: 8px 14px;
+  border-radius: 6px;
+  padding: 7px 10px;
   font-family: inherit;
   font-size: 12px;
   font-weight: 500;
+  letter-spacing: -0.01em;
   cursor: pointer;
   gap: 8px;
   align-items: center;
+  transition: background-color .12s;
 }
 .dropdown-menu button:hover { background: var(--tb-dropdown-hover); }
 .dropdown-menu .mi { font-size: 18px; color: var(--tb-accent); }
@@ -376,7 +418,7 @@ body.edit-mode [contenteditable="true"]:focus {
   text-align: center;
   padding: 40px;
   color: #888;
-  font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Helvetica Neue", Arial, sans-serif;
 }
 
 /* Controles de zoom — flutuantes, fixos no canto superior direito */
@@ -390,12 +432,13 @@ body.edit-mode [contenteditable="true"]:focus {
   align-items: stretch;
   gap: 2px;
   background: var(--tb-bg);
-  backdrop-filter: blur(14px) saturate(180%);
-  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid var(--tb-border);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 4px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Helvetica Neue", Arial, sans-serif;
 }
 .zoom-btn,
 .zoom-value {

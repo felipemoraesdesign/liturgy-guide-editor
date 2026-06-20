@@ -40,7 +40,15 @@
   const trackingValue = document.getElementById('tracking-value');
   const TRACKING_MIN = -2.0;   // px
   const TRACKING_MAX = 10.0;   // px
-  const TRACKING_STEP = 0.5;   // px
+  const TRACKING_STEP = 0.1;   // px (passo fino pra ajustes tipográficos sutis)
+  // Widget de entrelinha (line-height)
+  const lineHeightMinus = document.getElementById('line-height-minus');
+  const lineHeightPlus  = document.getElementById('line-height-plus');
+  const lineHeightValue = document.getElementById('line-height-value');
+  const LH_MIN = 0.8;          // ratio (unitless)
+  const LH_MAX = 2.5;
+  const LH_STEP = 0.1;
+  const LH_DEFAULT_FALLBACK = 1.35;
   // Popup de formatação
   const formatPopup = document.getElementById('format-popup');
   // Override manual de número de estrofe
@@ -571,6 +579,9 @@
       document.body.classList.add('in-block');
       updateSpacingDisplay(getSpacingValue(ctx));
       updateTrackingDisplay(getTrackingValue(ctx));
+      // Line-height usa contexto SEPARADO (per-bloco), pra não herdar pra toda a coluna
+      const lineCtx = getLineHeightContext();
+      if (lineCtx) updateLineHeightDisplay(getLineHeightValue(lineCtx));
     } else {
       currentLyricBlock = null;
       document.body.classList.remove('in-block');
@@ -596,12 +607,11 @@
   function setTrackingValue(ctx, px) {
     px = Math.max(TRACKING_MIN, Math.min(TRACKING_MAX, px));
     px = Math.round(px * 10) / 10;
-    // 0 → remove inline (volta pro default "normal")
-    if (px === 0) {
-      ctx.element.style.letterSpacing = '';
-    } else {
-      ctx.element.style.letterSpacing = px + 'px';
-    }
+    // Normaliza -0 → 0 (cosmetic)
+    if (Object.is(px, -0)) px = 0;
+    // Sempre define o inline (mesmo pra 0), pra não deixar o CSS-default reassumir
+    // quando o usuário tenta passar do zero indo pra negativo
+    ctx.element.style.letterSpacing = px + 'px';
     updateTrackingDisplay(px);
     scheduleSave();
   }
@@ -611,6 +621,77 @@
     px = Math.round(px * 10) / 10;
     const label = (px > 0 ? '+' : '') + (px === 0 ? '0' : px.toString().replace(/\.0$/, ''));
     trackingValue.textContent = label + 'px';
+  }
+
+  // ---------- entrelinha (line-height) ----------
+  // Diferente de margin-bottom: line-height afeta o espaço ENTRE as linhas
+  // dentro de um mesmo parágrafo (linhas separadas por <br> ou wrapping).
+  //
+  // IMPORTANTE: usa contexto PER-BLOCO (não usa .lyric-block como container
+  // uniforme), pra evitar que line-height herde pra toda a coluna de letras.
+  function getLineHeightContext() {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return null;
+    let node = sel.getRangeAt(0).startContainer;
+    if (node.nodeType === Node.TEXT_NODE) node = node.parentNode;
+    if (!node || !node.closest) return null;
+    // 1ª tentativa: bloco semântico mais próximo (NÃO sobe pra .lyric-block)
+    let block = node.closest(BLOCK_SELECTOR);
+    // Fallback: <div> não-estrutural — exclui também .lyric-block aqui
+    if (!block) {
+      let current = node;
+      while (current && current !== HOST) {
+        if (current.tagName === 'DIV' &&
+            !isStructuralDiv(current) &&
+            !current.classList.contains('lyric-block')) {
+          block = current;
+          break;
+        }
+        current = current.parentElement;
+      }
+    }
+    if (!block || !HOST.contains(block)) return null;
+    return { kind: 'element', element: block };
+  }
+
+  function getLineHeightValue(ctx) {
+    const el = ctx.element;
+    // Inline tem prioridade
+    if (el.style.lineHeight) {
+      const v = el.style.lineHeight;
+      if (v === 'normal') return LH_DEFAULT_FALLBACK;
+      if (v.endsWith('%')) return parseFloat(v) / 100;
+      // Unitless (ex.: "1.5") ou com unidade — pega o número
+      const num = parseFloat(v);
+      if (!isNaN(num) && num > 0 && num < 5) return num;
+      // Se tem unidade (px, em), tenta converter pra ratio
+      const fs = parseFloat(getComputedStyle(el).fontSize) || 1;
+      return num / fs;
+    }
+    // Computed line-height vem em px, converte pra ratio
+    const comp = getComputedStyle(el).lineHeight;
+    if (!comp || comp === 'normal') return LH_DEFAULT_FALLBACK;
+    const lhPx = parseFloat(comp);
+    const fsPx = parseFloat(getComputedStyle(el).fontSize) || 1;
+    if (fsPx > 0 && !isNaN(lhPx)) {
+      return Math.round((lhPx / fsPx) * 100) / 100;
+    }
+    return LH_DEFAULT_FALLBACK;
+  }
+
+  function setLineHeightValue(ctx, value) {
+    value = Math.max(LH_MIN, Math.min(LH_MAX, value));
+    value = Math.round(value * 10) / 10;
+    // Aplica como unitless (recomendado em CSS pra inheritance previsível)
+    ctx.element.style.lineHeight = String(value);
+    updateLineHeightDisplay(value);
+    scheduleSave();
+  }
+
+  function updateLineHeightDisplay(value) {
+    if (!lineHeightValue) return;
+    value = Math.round(value * 10) / 10;
+    lineHeightValue.textContent = value.toFixed(1);
   }
 
   // ---------- detecção de cursor em <li> de ol.verses (pra override de número) ----------
@@ -742,6 +823,11 @@
           toggleRefrain();
           return;
         }
+        // Botão all-caps (text-transform: uppercase) também é toggle dedicado
+        if (btn.id === 'btn-allcaps') {
+          toggleAllCaps();
+          return;
+        }
         // Toggle do dropdown de alinhamento — só abre/fecha, não executa comando
         if (btn.id === 'align-toggle') {
           e.stopPropagation();
@@ -786,6 +872,91 @@
         alignDropdown.classList.remove('open');
       }
     });
+  }
+
+  // Alterna text-transform: uppercase.
+  // Comportamento:
+  //   • Se há TEXTO SELECIONADO → envolve só a seleção num <span style="text-transform:uppercase">
+  //     (toggle: clicar de novo desfaz o span)
+  //   • Se há apenas cursor (sem seleção) → aplica no bloco onde o cursor está,
+  //     usando contexto per-bloco (não sobe pra .lyric-block)
+  function toggleAllCaps() {
+    const sel = window.getSelection();
+
+    // Caso 1: SELEÇÃO ATIVA — wrap em span
+    if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+      const range = sel.getRangeAt(0);
+      // Verifica se a seleção já está dentro de um span uppercase (toggle off)
+      const enclosing = findEnclosingUppercaseSpan(range);
+      if (enclosing) {
+        unwrapElement(enclosing);
+        scheduleSave();
+        updateAllCapsState();
+        return;
+      }
+      try {
+        const span = document.createElement('span');
+        span.style.textTransform = 'uppercase';
+        range.surroundContents(span);
+        scheduleSave();
+        updateAllCapsState();
+        return;
+      } catch (e) {
+        // surroundContents falha quando a seleção cruza fronteiras de elemento.
+        // Cai pro modo per-bloco abaixo.
+      }
+    }
+
+    // Caso 2: SEM SELEÇÃO — aplica no bloco inteiro
+    const ctx = getLineHeightContext();
+    if (!ctx) {
+      setStatus('Posicione o cursor num bloco editável');
+      return;
+    }
+    const el = ctx.element;
+    const inline = el.style.textTransform;
+    const computed = getComputedStyle(el).textTransform;
+
+    if (inline === 'uppercase' || inline === 'none') {
+      el.style.textTransform = '';
+    } else if (computed === 'uppercase') {
+      el.style.textTransform = 'none';
+    } else {
+      el.style.textTransform = 'uppercase';
+    }
+    updateAllCapsState();
+    scheduleSave();
+  }
+
+  // Helpers pra manipular spans de uppercase em seleções
+  function findEnclosingUppercaseSpan(range) {
+    let el = range.commonAncestorContainer;
+    if (el.nodeType === Node.TEXT_NODE) el = el.parentNode;
+    while (el && el !== HOST) {
+      if (el.tagName === 'SPAN' && el.style && el.style.textTransform === 'uppercase') {
+        return el;
+      }
+      el = el.parentElement;
+    }
+    return null;
+  }
+  function unwrapElement(el) {
+    const parent = el.parentNode;
+    if (!parent) return;
+    while (el.firstChild) parent.insertBefore(el.firstChild, el);
+    parent.removeChild(el);
+  }
+
+  // Reflete visualmente se o bloco atual está em uppercase (botão fica "ativo")
+  function updateAllCapsState() {
+    const btn = document.getElementById('btn-allcaps');
+    if (!btn) return;
+    const ctx = getLineHeightContext();
+    if (!ctx) {
+      btn.classList.remove('active');
+      return;
+    }
+    btn.classList.toggle('active', getComputedStyle(ctx.element).textTransform === 'uppercase');
   }
 
   // Alterna a estrofe atual entre numerada (1., 2., …) e refrão (R.)
@@ -1006,6 +1177,7 @@
       updateSelectionState();
       updateBlockState();
       updateVerseLiState();
+      updateAllCapsState();
     });
 
     // Override de número de estrofe
@@ -1059,6 +1231,21 @@
       e.preventDefault();
       if (!currentLyricBlock) return;
       setTrackingValue(currentLyricBlock, getTrackingValue(currentLyricBlock) + TRACKING_STEP);
+    });
+
+    // Botões de entrelinha (line-height) — usam contexto PER-BLOCO próprio,
+    // pra afetar só o parágrafo onde o cursor está, não a coluna toda
+    lineHeightMinus.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      const lineCtx = getLineHeightContext();
+      if (!lineCtx) return;
+      setLineHeightValue(lineCtx, getLineHeightValue(lineCtx) - LH_STEP);
+    });
+    lineHeightPlus.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      const lineCtx = getLineHeightContext();
+      if (!lineCtx) return;
+      setLineHeightValue(lineCtx, getLineHeightValue(lineCtx) + LH_STEP);
     });
 
     try {
