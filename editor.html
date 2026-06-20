@@ -18,6 +18,10 @@
     <span class="mi">edit</span>Editar
   </button>
 
+  <button id="btn-move" type="button" class="secondary" title="Mover blocos entre painéis (drag-and-drop)">
+    <span class="mi">open_with</span>Mover
+  </button>
+
   <button type="button" id="btn-print">
     <span class="mi">print</span>Imprimir
   </button>
@@ -62,6 +66,17 @@
 
   <input type="file" id="file-input" accept=".html,.htm,text/html" style="display:none">
   <span class="status" id="status"></span>
+</div>
+
+<!-- Controles de zoom — flutuantes, fixos à direita, separados da toolbar -->
+<div class="zoom-controls" id="zoom-controls" role="group" aria-label="Zoom do documento">
+  <button type="button" class="zoom-btn" id="zoom-in" title="Aumentar zoom (Cmd/Ctrl +)">
+    <span class="mi">add</span>
+  </button>
+  <button type="button" class="zoom-btn" id="zoom-out" title="Diminuir zoom (Cmd/Ctrl −)">
+    <span class="mi">remove</span>
+  </button>
+  <button type="button" class="zoom-value" id="zoom-value" title="Resetar para 100% (Cmd/Ctrl 0)">100%</button>
 </div>
 
 <!-- Popup flutuante de formatação — aparece perto da seleção -->
@@ -119,6 +134,13 @@
     <span class="mi only spacing-icon" title="Número manual da estrofe">format_list_numbered</span>
     <input type="number" id="verse-number-input" class="verse-number-input" min="1" max="99" placeholder="auto" title="Digite um número para sobrescrever, ou deixe vazio para contagem automática">
     <button type="button" class="fmt" id="verse-number-clear" title="Voltar pra contagem automática">×</button>
+  </div>
+
+  <div class="popup-row tracking-control" id="tracking-row">
+    <span class="mi only spacing-icon" title="Kerning (espaçamento entre caracteres)">format_letter_spacing</span>
+    <button type="button" class="fmt" id="tracking-minus" title="Diminuir kerning">−</button>
+    <span class="spacing-value" id="tracking-value">—</span>
+    <button type="button" class="fmt" id="tracking-plus" title="Aumentar kerning">+</button>
   </div>
 </div>
 

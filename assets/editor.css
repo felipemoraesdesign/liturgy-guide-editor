@@ -244,6 +244,19 @@ body.edit-mode.has-selection.in-block .format-popup .popup-row.spacing-control {
 body.edit-mode.has-selection.in-verse-li .format-popup .popup-row.verse-number-control {
   display: flex;
 }
+
+/* Linha de kerning (letter-spacing) — aparece junto com o widget de espaçamento */
+.format-popup .popup-row.tracking-control {
+  display: none;
+  padding-top: 4px;
+  border-top: 1px solid var(--tb-border);
+  margin-top: 2px;
+  align-items: center;
+  gap: 4px;
+}
+body.edit-mode.has-selection.in-block .format-popup .popup-row.tracking-control {
+  display: flex;
+}
 .verse-number-input {
   width: 60px;
   border: 1px solid var(--tb-input-border);
@@ -366,9 +379,142 @@ body.edit-mode [contenteditable="true"]:focus {
   font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
 }
 
+/* Controles de zoom — flutuantes, fixos no canto superior direito */
+.zoom-controls {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 1050;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  background: var(--tb-bg);
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  border: 1px solid var(--tb-border);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+.zoom-btn,
+.zoom-value {
+  width: 36px;
+  border: 0;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background .12s, color .12s;
+  font-family: inherit;
+}
+.zoom-btn {
+  height: 32px;
+  color: var(--tb-text);
+}
+.zoom-btn .mi { font-size: 20px; margin: 0; }
+.zoom-btn:hover  { background: var(--tb-hover); }
+.zoom-btn:active { background: var(--tb-active); }
+.zoom-btn:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+  background: transparent;
+}
+
+/* Indicador de percentual — clica pra resetar pra 100% */
+.zoom-value {
+  height: 24px;
+  color: var(--tb-text-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+.zoom-value:hover  { background: var(--tb-hover); color: var(--tb-text); }
+.zoom-value:active { background: var(--tb-active); }
+
+/* Reset do transform na impressão pra não bagunçar o PDF */
+@media print {
+  #document-host { transform: none !important; }
+}
+
+/* ===================== MODO MOVER (DRAG-AND-DROP) ===================== */
+body.drag-mode {
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* No modo mover, esconde popup de formatação e outras chrome de edição */
+body.drag-mode .format-popup { display: none !important; }
+body.drag-mode [contenteditable="true"]:hover,
+body.drag-mode [contenteditable="true"]:focus {
+  outline: 0 !important;
+  background: transparent !important;
+}
+
+/* Blocos arrastáveis — destaque visual sutil no hover */
+body.drag-mode .panel-body > * {
+  cursor: grab;
+  position: relative;
+  transition: outline-color .12s, background-color .12s;
+}
+body.drag-mode .panel-body > *:hover {
+  outline: 2px dashed var(--tb-accent);
+  outline-offset: 2px;
+  background: rgba(140, 50, 56, 0.04);
+}
+body.drag-mode .panel-body > *.dragging {
+  opacity: 0.4 !important;
+  outline: 2px solid var(--tb-accent) !important;
+  cursor: grabbing !important;
+}
+
+/* Indicadores de drop — linha grossa acima ou abaixo do elemento alvo */
+.drop-target-before {
+  box-shadow: 0 -3px 0 var(--tb-accent) !important;
+  outline: none !important;
+}
+.drop-target-after {
+  box-shadow: 0 3px 0 var(--tb-accent) !important;
+  outline: none !important;
+}
+.drop-target-empty {
+  outline: 2px solid var(--tb-accent) !important;
+  background: rgba(140, 50, 56, 0.08) !important;
+  min-height: 30mm;
+}
+
+/* Botão "Mover" quando ativo (em drag-mode) — destaca */
+#btn-move.active {
+  background: var(--tb-accent);
+  color: #fff;
+  border-color: var(--tb-accent);
+}
+
+/* Modo "pan" — segurando espaço, cursor vira mãozinha pra arrastar a artboard */
+body.pan-mode,
+body.pan-mode * {
+  cursor: grab !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+body.panning,
+body.panning * {
+  cursor: grabbing !important;
+}
+/* Em pan-mode, desabilita hover/focus visual do contenteditable (não está editando, está navegando) */
+body.pan-mode [contenteditable="true"]:hover,
+body.pan-mode [contenteditable="true"]:focus {
+  outline: 0 !important;
+  background: transparent !important;
+}
+
 /* Na impressão, esconde toda a chrome do editor */
 @media print {
   .toolbar { display: none !important; }
+  .zoom-controls { display: none !important; }
   body { padding-top: 0 !important; }
   body.edit-mode [contenteditable="true"] {
     outline: 0 !important;

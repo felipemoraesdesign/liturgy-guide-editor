@@ -19,6 +19,7 @@
   const HOST    = document.getElementById('document-host');
   const status  = document.getElementById('status');
   const btnEdit = document.getElementById('btn-edit');
+  const btnMove = document.getElementById('btn-move');
   const btnPrint = document.getElementById('btn-print');
   const btnSave = document.getElementById('btn-save');
   const btnUpload = document.getElementById('btn-upload');
@@ -33,6 +34,13 @@
   const spacingMinus = document.getElementById('spacing-minus');
   const spacingPlus  = document.getElementById('spacing-plus');
   const spacingValue = document.getElementById('spacing-value');
+  // Widget de kerning (letter-spacing)
+  const trackingMinus = document.getElementById('tracking-minus');
+  const trackingPlus  = document.getElementById('tracking-plus');
+  const trackingValue = document.getElementById('tracking-value');
+  const TRACKING_MIN = -2.0;   // px
+  const TRACKING_MAX = 10.0;   // px
+  const TRACKING_STEP = 0.5;   // px
   // Popup de formatação
   const formatPopup = document.getElementById('format-popup');
   // Override manual de número de estrofe
@@ -46,10 +54,21 @@
   const themeIcon = null;
   const THEME_KEY = 'boletim-editor-theme';
 
-  // Configuração do espaçamento de .lyric-block (em mm)
+  // Zoom do documento (afeta só o #document-host, não a chrome do editor)
+  const btnZoomIn    = document.getElementById('zoom-in');
+  const btnZoomOut   = document.getElementById('zoom-out');
+  const zoomValueBtn = document.getElementById('zoom-value');
+  const ZOOM_KEY = 'liturgy-editor-zoom';
+  const ZOOM_MIN = 0.4;
+  const ZOOM_MAX = 2.5;
+  const ZOOM_STEP = 0.1;
+  let currentZoom = 1.0;
+
+  // Configuração do espaçamento (em mm).
+  // MIN negativo permite "puxar" o próximo elemento pra cima (útil pra compactar layout).
   const LYRIC_GAP_DEFAULT = 3.5;
-  const LYRIC_GAP_MIN = 1.0;
-  const LYRIC_GAP_MAX = 10.0;
+  const LYRIC_GAP_MIN = -5.0;
+  const LYRIC_GAP_MAX = 15.0;
   const LYRIC_GAP_STEP = 0.5;
   let currentLyricBlock = null;
 
@@ -231,6 +250,8 @@
 
   // ---------- modo de edição ----------
   function setEditMode(on) {
+    // Edit e drag são mutuamente exclusivos
+    if (on && typeof dragMode !== 'undefined' && dragMode) setDragMode(false);
     editMode = on;
     document.body.classList.toggle('edit-mode', on);
     const bk = getCurrentBook();
@@ -246,6 +267,140 @@
     }
   }
   function toggleEdit() { setEditMode(!editMode); }
+
+  // ---------- modo MOVER (drag-and-drop) ----------
+  let dragMode = false;
+  let draggedElement = null;
+  let dropTarget = null;
+  let dropBefore = true;
+
+  function setDragMode(on) {
+    dragMode = on;
+    document.body.classList.toggle('drag-mode', on);
+    btnMove.classList.toggle('active', on);
+
+    const book = getCurrentBook();
+    if (!book) return;
+
+    if (on) {
+      // Sai do modo edição se estiver ativo (são mutuamente exclusivos)
+      if (editMode) setEditMode(false);
+      // Desabilita contenteditable pra DnD funcionar limpo
+      book.dataset.prevEditable = book.contentEditable;
+      book.contentEditable = 'false';
+      // Marca todos os filhos diretos de .panel-body como draggable
+      HOST.querySelectorAll('.panel-body > *').forEach((el) => {
+        el.setAttribute('draggable', 'true');
+      });
+      setStatus('Modo mover ativo — arraste blocos entre painéis. Esc pra sair.');
+    } else {
+      // Restaura contenteditable
+      book.contentEditable = book.dataset.prevEditable || 'false';
+      delete book.dataset.prevEditable;
+      // Remove draggable
+      HOST.querySelectorAll('[draggable="true"]').forEach((el) => {
+        el.removeAttribute('draggable');
+      });
+      clearDropIndicators();
+      saveCache();
+    }
+  }
+  function toggleDragMode() { setDragMode(!dragMode); }
+
+  function clearDropIndicators() {
+    document.querySelectorAll('.drop-target-before, .drop-target-after, .drop-target-empty')
+      .forEach((el) => {
+        el.classList.remove('drop-target-before', 'drop-target-after', 'drop-target-empty');
+      });
+  }
+
+  function findDropPosition(panelBody, clientY) {
+    const children = Array.from(panelBody.children).filter((c) => c !== draggedElement);
+    if (children.length === 0) {
+      return { target: panelBody, before: true, isEmpty: true };
+    }
+    let closest = null;
+    let closestDist = Infinity;
+    let before = true;
+    for (const child of children) {
+      const rect = child.getBoundingClientRect();
+      const mid = rect.top + rect.height / 2;
+      const dist = Math.abs(clientY - mid);
+      if (dist < closestDist) {
+        closestDist = dist;
+        closest = child;
+        before = clientY < mid;
+      }
+    }
+    return { target: closest, before, isEmpty: false };
+  }
+
+  function setupDragHandlers() {
+    HOST.addEventListener('dragstart', (e) => {
+      if (!dragMode) return;
+      const target = e.target.closest('.panel-body > *');
+      if (!target) return;
+      draggedElement = target;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', ''); // necessário no Firefox
+      // setTimeout pra não interferir com a captura da imagem de drag
+      setTimeout(() => target.classList.add('dragging'), 0);
+    });
+
+    HOST.addEventListener('dragover', (e) => {
+      if (!dragMode || !draggedElement) return;
+      const panelBody = e.target.closest('.panel-body');
+      if (!panelBody) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+
+      const pos = findDropPosition(panelBody, e.clientY);
+      clearDropIndicators();
+      if (pos.isEmpty) {
+        panelBody.classList.add('drop-target-empty');
+      } else if (pos.target) {
+        pos.target.classList.add(pos.before ? 'drop-target-before' : 'drop-target-after');
+      }
+      dropTarget = pos.target;
+      dropBefore = pos.before;
+    });
+
+    HOST.addEventListener('drop', (e) => {
+      if (!dragMode || !draggedElement) return;
+      e.preventDefault();
+      const panelBody = e.target.closest('.panel-body');
+      if (!panelBody) return;
+
+      const pos = findDropPosition(panelBody, e.clientY);
+      if (pos.isEmpty) {
+        panelBody.appendChild(draggedElement);
+      } else if (pos.target) {
+        const ref = pos.before ? pos.target : pos.target.nextSibling;
+        pos.target.parentNode.insertBefore(draggedElement, ref);
+      }
+      cleanupDrag();
+      scheduleSave();
+    });
+
+    HOST.addEventListener('dragend', () => {
+      cleanupDrag();
+    });
+
+    // Esc sai do modo mover
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && dragMode) {
+        e.preventDefault();
+        setDragMode(false);
+      }
+    });
+  }
+
+  function cleanupDrag() {
+    if (draggedElement) draggedElement.classList.remove('dragging');
+    clearDropIndicators();
+    draggedElement = null;
+    dropTarget = null;
+  }
 
   // ---------- detecção de seleção ativa ----------
   // Mostra o popup de formatação só quando há seleção não-vazia no documento,
@@ -305,23 +460,64 @@
   const BLOCK_SELECTOR = 'p, h1, h2, h3, h4, h5, h6, blockquote, li';
   const PX_PER_MM = 96 / 25.4;
 
+  // Divs estruturais que NÃO devem ser tratados como "bloco editável"
+  const STRUCTURAL_DIV_CLASSES = [
+    'book', 'sheet', 'panel', 'panel-body', 'panel-footer',
+    'cover', 'cover-verse', 'cover-foot', 'logo'
+  ];
+  function isStructuralDiv(el) {
+    if (!el || el.tagName !== 'DIV' || !el.classList) return false;
+    for (const cls of STRUCTURAL_DIV_CLASSES) {
+      if (el.classList.contains(cls)) return true;
+    }
+    return false;
+  }
+
   function getCurrentBlock() {
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return null;
     let node = sel.getRangeAt(0).startContainer;
     if (node.nodeType === Node.TEXT_NODE) node = node.parentNode;
     if (!node || !node.closest) return null;
-    const block = node.closest(BLOCK_SELECTOR);
+
+    // Caso especial: se o cursor está dentro de uma .lyric-block, devolve
+    // a própria .lyric-block como bloco — getSpacingContext vai tratar como
+    // contexto uniforme (ajusta --lyric-gap em vez de margin-bottom de cada item)
+    const lyricBlock = node.closest('.lyric-block');
+    if (lyricBlock && HOST.contains(lyricBlock)) {
+      return lyricBlock;
+    }
+
+    // 1ª tentativa: tags semânticas tradicionais
+    let block = node.closest(BLOCK_SELECTOR);
+    // Fallback: qualquer <div> não-estrutural ancestral (browsers criam divs
+    // em contenteditable quando o usuário pressiona Enter)
+    if (!block) {
+      let current = node;
+      while (current && current !== HOST) {
+        if (current.tagName === 'DIV' && !isStructuralDiv(current)) {
+          block = current;
+          break;
+        }
+        current = current.parentElement;
+      }
+    }
     return (block && HOST.contains(block)) ? block : null;
   }
 
   // Retorna o "contexto de espaçamento": ou um .lyric-block (uniforme), ou o próprio bloco.
   function getSpacingContext(block) {
     if (!block) return null;
-    // Se for um <p> dentro de .lyric-block, o contexto é o container (.lyric-block)
-    if (block.tagName === 'P') {
+    // Se o próprio bloco é uma .lyric-block, contexto é uniforme
+    if (block.classList && block.classList.contains('lyric-block')) {
+      return { kind: 'lyric', element: block };
+    }
+    // Se for um <p> ou <div> dentro de .lyric-block, idem (uniforme)
+    if (block.tagName === 'P' || block.tagName === 'DIV') {
       const lb = block.closest('.lyric-block');
-      if (lb && HOST.contains(lb)) return { kind: 'lyric', element: lb };
+      if (lb && HOST.contains(lb) && lb !== block) {
+        return { kind: 'lyric', element: lb };
+      }
     }
     return { kind: 'element', element: block };
   }
@@ -374,10 +570,47 @@
       currentLyricBlock = ctx; // reaproveita a variável global pra guardar o contexto
       document.body.classList.add('in-block');
       updateSpacingDisplay(getSpacingValue(ctx));
+      updateTrackingDisplay(getTrackingValue(ctx));
     } else {
       currentLyricBlock = null;
       document.body.classList.remove('in-block');
     }
+  }
+
+  // ---------- kerning (letter-spacing) ----------
+  function getTrackingValue(ctx) {
+    const el = ctx.element;
+    // Inline tem prioridade
+    if (el.style.letterSpacing) {
+      const v = el.style.letterSpacing;
+      if (v.endsWith('px')) return parseFloat(v) || 0;
+      if (v === 'normal') return 0;
+      return parseFloat(v) || 0;
+    }
+    // Computed (vem em px na maioria dos casos)
+    const comp = getComputedStyle(el).letterSpacing;
+    if (!comp || comp === 'normal') return 0;
+    return parseFloat(comp) || 0;
+  }
+
+  function setTrackingValue(ctx, px) {
+    px = Math.max(TRACKING_MIN, Math.min(TRACKING_MAX, px));
+    px = Math.round(px * 10) / 10;
+    // 0 → remove inline (volta pro default "normal")
+    if (px === 0) {
+      ctx.element.style.letterSpacing = '';
+    } else {
+      ctx.element.style.letterSpacing = px + 'px';
+    }
+    updateTrackingDisplay(px);
+    scheduleSave();
+  }
+
+  function updateTrackingDisplay(px) {
+    if (!trackingValue) return;
+    px = Math.round(px * 10) / 10;
+    const label = (px > 0 ? '+' : '') + (px === 0 ? '0' : px.toString().replace(/\.0$/, ''));
+    trackingValue.textContent = label + 'px';
   }
 
   // ---------- detecção de cursor em <li> de ol.verses (pra override de número) ----------
@@ -518,6 +751,11 @@
         const cmd = btn.dataset.cmd;
         if (cmd) {
           document.execCommand(cmd, false, null);
+          // Pós-processo: lista ordenada recém-criada ganha class="verses"
+          // pra herdar o estilo de estrofe (Bitter italic, "1." no gutter).
+          if (cmd === 'insertOrderedList') {
+            applyVersesClassToCurrentList();
+          }
           scheduleSave();
           // Se o botão estava dentro do dropdown de alinhamento, fecha depois de aplicar
           if (alignDropdown && alignDropdown.contains(btn)) {
@@ -526,6 +764,21 @@
         }
       });
     });
+
+    // Helper: encontra o <ol> ancestral da seleção atual e adiciona class="verses"
+    function applyVersesClassToCurrentList() {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return;
+      let node = sel.getRangeAt(0).startContainer;
+      if (node.nodeType === Node.TEXT_NODE) node = node.parentNode;
+      while (node && node !== HOST) {
+        if (node.tagName === 'OL' && !node.classList.contains('verses')) {
+          node.classList.add('verses');
+          break;
+        }
+        node = node.parentElement;
+      }
+    }
 
     // Fecha o dropdown de alinhamento quando clica fora dele
     document.addEventListener('click', (e) => {
@@ -587,13 +840,135 @@
     setTheme(theme);
   }
 
+  // ---------- zoom do documento ----------
+  function applyZoom(z) {
+    z = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z));
+    z = Math.round(z * 100) / 100;
+    currentZoom = z;
+    HOST.style.transform = (z === 1) ? '' : `scale(${z})`;
+    HOST.style.transformOrigin = 'top center';
+    // Estado dos botões — desabilita quando bate no limite
+    if (btnZoomIn)  btnZoomIn.disabled  = (z >= ZOOM_MAX);
+    if (btnZoomOut) btnZoomOut.disabled = (z <= ZOOM_MIN);
+    // Atualiza o indicador de %
+    if (zoomValueBtn) zoomValueBtn.textContent = Math.round(z * 100) + '%';
+    try { localStorage.setItem(ZOOM_KEY, String(z)); } catch (e) {}
+  }
+  function initZoom() {
+    let z = 1.0;
+    try {
+      const saved = localStorage.getItem(ZOOM_KEY);
+      if (saved) {
+        const parsed = parseFloat(saved);
+        if (!isNaN(parsed)) z = parsed;
+      }
+    } catch (e) {}
+    applyZoom(z);
+  }
+
   // ---------- inicialização ----------
   async function init() {
     // TEMA — descomenta pra reativar (2/3)
     // initTheme();
 
+    // Zoom
+    initZoom();
+    btnZoomIn.addEventListener('click', () => applyZoom(currentZoom + ZOOM_STEP));
+    btnZoomOut.addEventListener('click', () => applyZoom(currentZoom - ZOOM_STEP));
+    zoomValueBtn.addEventListener('click', () => applyZoom(1.0));
+    // Atalhos de teclado: Cmd/Ctrl + e Cmd/Ctrl -
+    document.addEventListener('keydown', (e) => {
+      if (!(e.metaKey || e.ctrlKey)) return;
+      if (e.key === '=' || e.key === '+') { e.preventDefault(); applyZoom(currentZoom + ZOOM_STEP); }
+      else if (e.key === '-' || e.key === '_') { e.preventDefault(); applyZoom(currentZoom - ZOOM_STEP); }
+      else if (e.key === '0') { e.preventDefault(); applyZoom(1.0); }
+    });
+    // Cmd/Ctrl + scroll do mouse — zoom in/out (pega também pinch do trackpad)
+    document.addEventListener('wheel', (e) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      const step = ZOOM_STEP * (Math.abs(e.deltaY) > 50 ? 1 : 0.5);
+      applyZoom(currentZoom + (e.deltaY < 0 ? step : -step));
+    }, { passive: false });
+
+    // ----- Modo "pan" (segurar espaço pra arrastar a artboard) -----
+    let spaceHeld = false;
+    let isPanning = false;
+    let panLastX = 0, panLastY = 0;
+
+    function isEditingText() {
+      const ae = document.activeElement;
+      if (!ae) return false;
+      if (ae.isContentEditable) return true;
+      const tag = ae.tagName;
+      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.code !== 'Space') return;
+      // Se está editando texto, deixa o espaço ser digitado normalmente
+      if (isEditingText()) return;
+      e.preventDefault(); // evita que o navegador role a página
+      if (!spaceHeld) {
+        spaceHeld = true;
+        document.body.classList.add('pan-mode');
+      }
+    });
+    document.addEventListener('keyup', (e) => {
+      if (e.code !== 'Space') return;
+      spaceHeld = false;
+      document.body.classList.remove('pan-mode');
+      // Se estava arrastando, encerra
+      if (isPanning) {
+        isPanning = false;
+        document.body.classList.remove('panning');
+      }
+    });
+
+    document.addEventListener('mousedown', (e) => {
+      if (!spaceHeld) return;
+      // Ignora clique em controles da chrome (toolbar, zoom-controls, popup)
+      if (e.target.closest('.toolbar, .zoom-controls, .format-popup, .dropdown-menu, .popup-dropdown-menu')) return;
+      isPanning = true;
+      panLastX = e.clientX;
+      panLastY = e.clientY;
+      document.body.classList.add('panning');
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', (e) => {
+      if (!isPanning) return;
+      const dx = e.clientX - panLastX;
+      const dy = e.clientY - panLastY;
+      panLastX = e.clientX;
+      panLastY = e.clientY;
+      window.scrollBy(-dx, -dy);
+    });
+    document.addEventListener('mouseup', () => {
+      if (isPanning) {
+        isPanning = false;
+        document.body.classList.remove('panning');
+      }
+    });
+    // Sair da janela cancela o pan
+    document.addEventListener('mouseleave', () => {
+      if (isPanning) {
+        isPanning = false;
+        document.body.classList.remove('panning');
+      }
+    });
+    // Se o foco sair do documento (ex.: alt-tab), cancela tudo
+    window.addEventListener('blur', () => {
+      spaceHeld = false;
+      isPanning = false;
+      document.body.classList.remove('pan-mode', 'panning');
+    });
+
     btnEdit.addEventListener('click', toggleEdit);
+    btnMove.addEventListener('click', toggleDragMode);
     btnPrint.addEventListener('click', doPrint);
+
+    // Drag-and-drop handlers (passa a escutar sempre, atividade gated por dragMode)
+    setupDragHandlers();
     btnSave.addEventListener('click', saveToOriginal);
     btnUpload.addEventListener('click', () => fileInput.click());
     // TEMA — descomenta pra reativar (3/3)
@@ -672,6 +1047,18 @@
       e.preventDefault();
       if (!currentLyricBlock) return;
       setSpacingValue(currentLyricBlock, getSpacingValue(currentLyricBlock) + LYRIC_GAP_STEP);
+    });
+
+    // Botões de kerning (letter-spacing)
+    trackingMinus.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      if (!currentLyricBlock) return;
+      setTrackingValue(currentLyricBlock, getTrackingValue(currentLyricBlock) - TRACKING_STEP);
+    });
+    trackingPlus.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      if (!currentLyricBlock) return;
+      setTrackingValue(currentLyricBlock, getTrackingValue(currentLyricBlock) + TRACKING_STEP);
     });
 
     try {

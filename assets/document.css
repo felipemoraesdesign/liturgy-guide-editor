@@ -283,13 +283,33 @@ ol.verses p { margin: 0; }
 ol.verses > li[data-num] { counter-increment: none; }
 ol.verses > li[data-num]::before { content: attr(data-num) "."; }
 
+/* Listas criadas pelo editor (não-hino) — restaura marcadores visíveis.
+   O reset global zera list-style; esta regra mais específica reativa pra ol/ul comuns. */
+ol:not(.verses) {
+  list-style: decimal outside;
+  padding-left: 5mm;
+  margin: 0 0 2mm 0;
+}
+ul {
+  list-style: disc outside;
+  padding-left: 5mm;
+  margin: 0 0 2mm 0;
+}
+ol:not(.verses) > li,
+ul > li {
+  margin-bottom: 1mm;
+}
+
 /* Bloco de letras com espaço entre estrofes (pra hinos não numerados).
    O valor é ajustável por elemento via inline style="--lyric-gap: Xmm;"
-   (controlado pelo editor através do widget de espaçamento). */
-.lyric-block p {
+   (controlado pelo editor através do widget de espaçamento).
+   Aceita <p> e <div> (browsers às vezes criam divs no contenteditable). */
+.lyric-block > p,
+.lyric-block > div {
   margin-bottom: var(--lyric-gap, 3.5mm);
 }
-.lyric-block p:last-child {
+.lyric-block > p:last-child,
+.lyric-block > div:last-child {
   margin-bottom: 0;
 }
 
